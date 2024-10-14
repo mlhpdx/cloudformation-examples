@@ -1,0 +1,77 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Globals": {
+      "Function": {
+        "MemorySize": 1024,
+        "Runtime": "dotnet8",
+        "Timeout": 10
+      }
+    },
+    "Resources": {
+      "Api": {
+        "Type": "AWS::Serverless::Api",
+        "Properties": {
+          "StageName": "v1",
+          "MergeDefinitions": true,
+          "DefinitionBody": {
+            "openapi": "3.0.1",
+            "info": {
+              "title": "my-api",
+              "version": "1.0"
+            },
+            "paths": {
+              "/resource": {
+                "get": {
+                  "parameters": [
+                    {
+                      "name": "Range",
+                      "in": "header",
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "x-amazon-apigateway-integration": {
+                    "httpMethod": "POST",
+                    "type": "aws_proxy",
+                    "uri": {
+                      "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Handler.Arn}/invocations"
+                    },
+                    "requestParameters": {
+                      "integration.request.header.Range": "method.request.header.Range"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Handler": {
+        "Type": "AWS::Serverless::Function",
+        "Properties": {
+          "CodeUri": "./echo-lambda",
+          "Handler": "echo-lambda::EchoLambda.Function::FunctionHandler"
+        }
+      },
+      "HandlerPermission": {
+        "Type": "AWS::Lambda::Permission",
+        "Properties": {
+          "FunctionName": {
+            "Fn::GetAtt": [
+              "Handler",
+              "Arn"
+            ]
+          },
+          "Action": "lambda:InvokeFunction",
+          "Principal": "apigateway.amazonaws.com"
+        }
+      }
+    },
+    "Outputs": {
+      "Url": {
+        "Value": { "Fn::Sub": "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/v1/resource" }
+      }
+    }
+  }
