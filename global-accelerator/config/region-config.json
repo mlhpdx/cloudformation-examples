@@ -1,12 +1,15 @@
 {
   "GlobalOutputs": {},
   "us-east-1": {
-    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}",
+    "InstanceCount": 1
   },
   "us-west-2": {
-    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}",
+    "InstanceCount": 1
   },
   "eu-west-1": {
-    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}",
+    "InstanceCount": 1
   }
 }

@@ -30,17 +30,6 @@
       ]
     }
   },
-  "RegionCapacities": {
-    "us-west-2": {
-      "X": 3
-    },
-    "us-east-1": {
-      "X": 3
-    },
-    "eu-west-1": {
-      "X": 3
-    }
-  },
   "RegionConditionals": {
     "us-west-2": {
       "A": "true",
