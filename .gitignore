@@ -487,6 +487,5 @@ $RECYCLE.BIN/
 *.packaged
 *.json.combined
 *_request.json
-prerequisites.outputs
-global.outputs
+*.outputs
 .aws-sam/
