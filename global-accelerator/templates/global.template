@@ -189,11 +189,16 @@
             "Fn::Sub": "Global Accelerator ARN for accelerator ${Key}."
           },
           "Value": {
-            "Fn::GetAtt": [
+            "Fn::Join": [
+              " ",
               {
-                "Fn::Sub": "Gx${Key}"
-              },
-              "Ipv4Addresses"
+                "Fn::GetAtt": [
+                  {
+                    "Fn::Sub": "Gx${Key}"
+                  },
+                  "Ipv4Addresses"
+                ]
+              }
             ]
           }
         },
@@ -202,11 +207,16 @@
             "Fn::Sub": "Global Accelerator ARN for accelerator ${Key}."
           },
           "Value": {
-            "Fn::GetAtt": [
+            "Fn::Join": [
+              " ",
               {
-                "Fn::Sub": "Gx${Key}"
-              },
-              "Ipv6Addresses"
+                "Fn::GetAtt": [
+                  {
+                    "Fn::Sub": "Gx${Key}"
+                  },
+                  "Ipv6Addresses"
+                ]
+              }
             ]
           }
         },
@@ -228,7 +238,9 @@
               },
               "Value": {
                 "Fn::GetAtt": [
-                  { "Fn::Sub": "TcpListener${Key}${TcpPort}" },
+                  {
+                    "Fn::Sub": "TcpListener${Key}${TcpPort}"
+                  },
                   "ListenerArn"
                 ]
               }
@@ -253,7 +265,9 @@
               },
               "Value": {
                 "Fn::GetAtt": [
-                  { "Fn::Sub": "UdpListener${Key}${UdpPort}" },
+                  {
+                    "Fn::Sub": "UdpListener${Key}${UdpPort}"
+                  },
                   "ListenerArn"
                 ]
               }
