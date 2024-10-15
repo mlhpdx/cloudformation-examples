@@ -1,0 +1,61 @@
+{
+  "Stacks": {
+    "Accelerators": {
+      "Keys": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    "TcpPorts": {
+      "A": [ "80", "443" ],
+      "B": [ "1468" ],
+      "C": [ "53" ]
+    },
+    "UdpPorts": {
+      "A": [ ],
+      "B": [ "514" ],
+      "C": [ "53" ]
+    },
+    "DnsNames": {
+      "A": [
+        "www",
+        "app"
+      ],
+      "B": [
+        "syslog"
+      ],
+      "C": [
+        "dns"
+      ]
+    }
+  },
+  "RegionCapacities": {
+    "us-west-2": {
+      "X": 3
+    },
+    "us-east-1": {
+      "X": 3
+    },
+    "eu-west-1": {
+      "X": 3
+    }
+  },
+  "RegionConditionals": {
+    "us-west-2": {
+      "A": "true",
+      "B": "true",
+      "C": "true"
+    },
+    "us-east-1": {
+      "A": "true",
+      "B": "true",
+      "C": "true"
+    },
+    "eu-west-1": {
+      "A": "true",
+      "B": "true",
+      "C": "false"
+    }
+  }
+}

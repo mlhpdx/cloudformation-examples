@@ -1,0 +1,240 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": [
+    "AWS::LanguageExtensions",
+    "AWS::Serverless-2016-10-31"
+  ],
+  "Description": "Top-level template for setting-up and modifying Global Accelerator infrastructure.",
+  "Parameters": {
+    "DomainName": {
+      "Description": "The top-level domain on which the subdomain DNS records will be created for the global accelerators in this example stack. A HostedZone must exist for this domain in your account, but it doesn't need to be active.",
+      "Type": "String",
+      "Default": "not-a-real-domain.net"
+    }
+  },
+  "Mappings": {
+    "Fn::Transform": {
+      "Name": "AWS::Include",
+      "Parameters": {
+        "Location": "../config/global-config.json"
+      }
+    }
+  },
+  "Resources": {
+    "Fn::ForEach::Accelerators": [
+      "Key",
+      {
+        "Fn::FindInMap": [
+          "Stacks",
+          "Accelerators",
+          "Keys"
+        ]
+      },
+      {
+        "Gx${Key}": {
+          "Type": "AWS::GlobalAccelerator::Accelerator",
+          "Properties": {
+            "Enabled": true,
+            "Name": {
+              "Fn::Sub": "${AWS::StackName}-${Key}"
+            },
+            "IpAddressType": "IPV4"
+          }
+        },
+        "Fn::ForEach::DnsNames": [
+          "DnsName",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "DnsNames",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "DnsRecord${Key}${DnsName}": {
+              "Type": "AWS::Route53::RecordSet",
+              "Properties": {
+                "HostedZoneName": {
+                  "Fn::Sub": "${DomainName}."
+                },
+                "Type": "A",
+                "Name": {
+                  "Fn::Sub": "${DnsName}.${DomainName}"
+                },
+                "AliasTarget": {
+                  "DNSName": {
+                    "Fn::GetAtt": [
+                      {
+                        "Fn::Sub": "Gx${Key}"
+                      },
+                      "DnsName"
+                    ]
+                  },
+                  "EvaluateTargetHealth": false,
+                  "HostedZoneId": "Z2BJ6XQ5FK7U4H"
+                }
+              }
+            }
+          }
+        ],
+        "Fn::ForEach::TcpPorts": [
+          "TcpPort",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "TcpPorts",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "TcpListener${Key}${TcpPort}": {
+              "Type": "AWS::GlobalAccelerator::Listener",
+              "Properties": {
+                "AcceleratorArn": {
+                  "Fn::GetAtt": [
+                    {
+                      "Fn::Sub": "Gx${Key}"
+                    },
+                    "AcceleratorArn"
+                  ]
+                },
+                "Protocol": "TCP",
+                "ClientAffinity": "NONE",
+                "PortRanges": [
+                  {
+                    "FromPort": {
+                      "Ref": "TcpPort"
+                    },
+                    "ToPort": {
+                      "Ref": "TcpPort"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "Fn::ForEach::UdpPorts": [
+          "UdpPort",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "UdpPorts",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "UdpListener${Key}${UdpPort}": {
+              "Type": "AWS::GlobalAccelerator::Listener",
+              "Properties": {
+                "AcceleratorArn": {
+                  "Fn::GetAtt": [
+                    {
+                      "Fn::Sub": "Gx${Key}"
+                    },
+                    "AcceleratorArn"
+                  ]
+                },
+                "Protocol": "UDP",
+                "ClientAffinity": "NONE",
+                "PortRanges": [
+                  {
+                    "FromPort": {
+                      "Ref": "UdpPort"
+                    },
+                    "ToPort": {
+                      "Ref": "UdpPort"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "Outputs": {
+    "Fn::ForEach::AcceleratorOutputs": [
+      "Key",
+      {
+        "Fn::FindInMap": [
+          "Stacks",
+          "Accelerators",
+          "Keys"
+        ]
+      },
+      {
+        "Gx${Key}Arn": {
+          "Description": {
+            "Fn::Sub": "Global Accelerator ARN for accelerator ${Key}."
+          },
+          "Value": {
+            "Fn::GetAtt": [
+              {
+                "Fn::Sub": "Gx${Key}"
+              },
+              "AcceleratorArn"
+            ]
+          }
+        },
+        "Fn::ForEach::TcpPorts": [
+          "TcpPort",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "TcpPorts",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "TcpListener${Key}${TcpPort}Arn": {
+              "Description": {
+                "Fn::Sub": "TCP Listener ARN for accelerator ${Key}, port ${TcpPort}."
+              },
+              "Value": {
+                "Fn::GetAtt": [
+                  { "Fn::Sub": "TcpListener${Key}${TcpPort}" },
+                  "ListenerArn"
+                ]
+              }
+            }
+          }
+        ],
+        "Fn::ForEach::UdpPorts": [
+          "UdpPort",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "UdpPorts",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "UdpListener${Key}${UdpPort}Arn": {
+              "Description": {
+                "Fn::Sub": "UDP Listener ARN for accelerator ${Key}, port ${UdpPort}."
+              },
+              "Value": {
+                "Fn::GetAtt": [
+                  { "Fn::Sub": "UdpListener${Key}${UdpPort}" },
+                  "ListenerArn"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

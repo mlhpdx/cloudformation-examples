@@ -1,0 +1,55 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": [
+    "AWS::LanguageExtensions",
+    "AWS::Serverless-2016-10-31"
+  ],
+  "Description": "Resources needed to deploy this example (i.e. an S3 Bucket and Route53 HostedZone). This stack is only created if those resources haven'nt been specified in the BUCKET_NAME and DOMAIN_NAME environment variables (which are passed as parameters to this template).",
+  "Parameters": {
+    "BucketName": {
+      "Description": "The S3 bucket to hold packaged templates when deploying the remainder of this example stack.",
+      "Type": "String"
+    },
+    "DomainName": {
+      "Description": "The top-level domain on which the subdomain DNS records will be created for the global accelerators in this example stack. A HostedZone must exist for this domain in your account, but it doesn't need to be active.",
+      "Type": "String"
+    }
+  },
+  "Conditions": {
+    "CreateBucket": {
+      "Fn::Equals": [
+        { "Ref": "BucketName" },
+        ""
+      ]
+    },
+    "CreateHostedZone": {
+      "Fn::Equals": [
+        { "Ref": "DomainName" },
+        ""
+      ]
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Condition": "CreateBucket",
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+      }
+    },
+    "HostedZone": {
+      "Condition": "CreateHostedZone",
+      "Type": "AWS::Route53::HostedZone",
+      "Properties": {
+        "Name": "not-a-real-domain.net"
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": {
+      "Value": { "Fn::If": [ "CreateBucket",  { "Ref": "Bucket" }, { "Ref": "BucketName" } ] }
+    },
+    "DomainName": {
+      "Value": { "Fn::If": [ "CreateHostedZone",  "not-a-real-domain.net", { "Ref": "DomainName" } ] }
+    }
+  }
+}

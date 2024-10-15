@@ -1,0 +1,157 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": [
+    "AWS::LanguageExtensions",
+    "AWS::Serverless-2016-10-31"
+  ],
+  "Description": "Top-level template for setting-up and modifying *regional* Global Accelerator endpoint group infrastructure.",
+  "Mappings": {
+    "Fn::Transform": {
+      "Name": "AWS::Include",
+      "Parameters": {
+        "Location": "../config/global-config.json"
+      }
+    },
+    "RegionConfig": {
+      "Fn::Transform": {
+        "Name": "AWS::Include",
+        "Parameters": {
+          "Location": "../region-config.json.combined"
+        }
+      }
+    }
+  },
+  "Resources": {
+    "Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "LaunchTemplate": {
+          "LaunchTemplateId": {
+            "Ref": "LaunchTemplate"
+          },
+          "Version": {
+            "Fn::GetAtt": [
+              "LaunchTemplate",
+              "DefaultVersionNumber"
+            ]
+          }
+        }
+      }
+    },
+    "LaunchTemplate": {
+      "Type": "AWS::EC2::LaunchTemplate",
+      "Properties": {
+        "LaunchTemplateData": {
+          "ImageId": {
+            "Fn::FindInMap": [
+              "RegionConfig",
+              {
+                "Ref": "AWS::Region"
+              },
+              "AmiId"
+            ]
+          },
+          "InstanceType": "t2.micro",
+          "MetadataOptions": {
+            "InstanceMetadataTags": "enabled"
+          },
+          "SecurityGroupIds": [
+            "sg-12a4c434"
+          ],
+          "TagSpecifications": []
+        }
+      }
+    },
+    "Fn::ForEach::Accelerators": [
+      "Key",
+      {
+        "Fn::FindInMap": [
+          "Stacks",
+          "Accelerators",
+          "Keys"
+        ]
+      },
+      {
+        "Fn::ForEach::TcpPorts": [
+          "TcpPort",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "TcpPorts",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "TcpEPG${Key}${TcpPort}": {
+              "Type": "AWS::GlobalAccelerator::EndpointGroup",
+              "Properties": {
+                "ListenerArn": {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    "GlobalOutputs",
+                    { "Fn::Sub": "TcpListener${Key}${TcpPort}Arn" }
+                  ]
+                },
+                "EndpointGroupRegion": {
+                  "Ref": "AWS::Region"
+                },
+                "TrafficDialPercentage": 100.0,
+                "EndpointConfigurations": [
+                  {
+                    "EndpointId": {
+                      "Ref": "Instance"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "Fn::ForEach::UdpPorts": [
+          "UdpPort",
+          {
+            "Fn::FindInMap": [
+              "Stacks",
+              "UdpPorts",
+              {
+                "Ref": "Key"
+              }
+            ]
+          },
+          {
+            "UdpEPG${Key}${UdpPort}": {
+              "Type": "AWS::GlobalAccelerator::EndpointGroup",
+              "Properties": {
+                "ListenerArn": {
+                  "Fn::FindInMap": [
+                    "RegionConfig",
+                    "GlobalOutputs",
+                    { "Fn::Sub": "UdpListener${Key}${UdpPort}Arn" }
+                  ]
+                },
+                "EndpointGroupRegion": {
+                  "Ref": "AWS::Region"
+                },
+                "TrafficDialPercentage": 100.0,
+                "EndpointConfigurations": [
+                  {
+                    "EndpointId": {
+                      "Ref": "Instance"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "Outputs": {
+    "InstanceId": {
+      "Value": { "Ref": "Instance" }
+    }
+  }
+}

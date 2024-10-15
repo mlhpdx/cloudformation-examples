@@ -1,0 +1,12 @@
+{
+  "GlobalOutputs": {},
+  "us-east-1": {
+    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+  },
+  "us-west-2": {
+    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+  },
+  "eu-west-1": {
+    "AmiId": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"
+  }
+}
