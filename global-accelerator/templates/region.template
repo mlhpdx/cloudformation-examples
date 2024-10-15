@@ -59,17 +59,19 @@
             "sg-12a4c434"
           ],
           "UserData": {
-            "Fn::Join": [
-              "\n",
-              [
-                "#!/bin/bash -x",
-                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
-                "yum -y update",
-                "yum install -y aws-cli ruby jq ncat parallel",
-                "parallel ncat -k -c \"xargs -n1 echo\" -l ::: 80 443 1812 1813 1468 3799 &",
-                "parallel ncat -k -c \"xargs -n1 echo\" --udp -l ::: 514 1812 1813 3799 &"
+            "Fn::Base64": {
+              "Fn::Join": [
+                "\n",
+                [
+                  "#!/bin/bash -x",
+                  "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                  "yum -y update",
+                  "yum install -y aws-cli ruby jq ncat parallel",
+                  "parallel ncat -k -c \"xargs -n1 echo\" -l ::: 80 443 1812 1813 1468 3799 &",
+                  "parallel ncat -k -c \"xargs -n1 echo\" --udp -l ::: 514 1812 1813 3799 &"
+                ]
               ]
-            ]
+            }
           },
           "TagSpecifications": []
         }
@@ -104,7 +106,9 @@
                   "Fn::FindInMap": [
                     "RegionConfig",
                     "GlobalOutputs",
-                    { "Fn::Sub": "TcpListener${Key}${TcpPort}Arn" }
+                    {
+                      "Fn::Sub": "TcpListener${Key}${TcpPort}Arn"
+                    }
                   ]
                 },
                 "EndpointGroupRegion": {
@@ -141,7 +145,9 @@
                   "Fn::FindInMap": [
                     "RegionConfig",
                     "GlobalOutputs",
-                    { "Fn::Sub": "UdpListener${Key}${UdpPort}Arn" }
+                    {
+                      "Fn::Sub": "UdpListener${Key}${UdpPort}Arn"
+                    }
                   ]
                 },
                 "EndpointGroupRegion": {
@@ -164,7 +170,9 @@
   },
   "Outputs": {
     "InstanceId": {
-      "Value": { "Ref": "Instance" }
+      "Value": {
+        "Ref": "Instance"
+      }
     }
   }
 }
