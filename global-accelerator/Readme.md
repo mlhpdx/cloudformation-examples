@@ -36,7 +36,7 @@ This solution also creates a bucket for deployment artifacts (e.g. the output of
 
 ## More Deployment Information and Options
 
-To make this example closer to a "real world" use of GX the solution creates multiple GX Accelerators with multiple listeners. This reflects, perhaps, what a DevOps team would need to run Accelerators for web applications, syslog and DNS all with one IoC setup.
+To make this example closer to a "real world" use of GX the solution creates multiple GX Accelerators with multiple listeners. This reflects, perhaps, what a DevOps team would need to run Accelerators for web applications, syslog and RADIUS all with one IoC setup.
 
 To control the configuation, see the JSON configuration files imported into the template's `Mappings` section with `Fn::Include`. The `global-config.json` file specifies the number and setup of Accelerators, including subdomain names, listeners (ports) supported and whether listeners should be created in each region (`RegionConditionals`). Using this file new Accelerators and Listeners can be added and removed. 
 
