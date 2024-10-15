@@ -184,6 +184,32 @@
             ]
           }
         },
+        "Gx${Key}IPv4s": {
+          "Description": {
+            "Fn::Sub": "Global Accelerator ARN for accelerator ${Key}."
+          },
+          "Value": {
+            "Fn::GetAtt": [
+              {
+                "Fn::Sub": "Gx${Key}"
+              },
+              "Ipv4Addresses"
+            ]
+          }
+        },
+        "Gx${Key}IPv6s": {
+          "Description": {
+            "Fn::Sub": "Global Accelerator ARN for accelerator ${Key}."
+          },
+          "Value": {
+            "Fn::GetAtt": [
+              {
+                "Fn::Sub": "Gx${Key}"
+              },
+              "Ipv6Addresses"
+            ]
+          }
+        },
         "Fn::ForEach::TcpPorts": [
           "TcpPort",
           {
