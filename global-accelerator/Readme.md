@@ -30,7 +30,7 @@ By default, the solution creates the global resources in the `us-east-1` region,
 
 ## BYOB(ucket) and "real" Domain
 
-By default this solution creates a HostedZone called "", which won't be resolvable. You can specify a custom domain name (i.e. one you own) for the GX by setting the environment variable `DOMAIN_NAME` before running `./deploy.sh`. In that case you'll get subdomain names for each GX that can be used for real, and still have global IP addresses (the best of both worlds).
+By default this solution creates a HostedZone called "not-a-real-domain.net", which probably won't be resolvable. You can specify a custom domain name (i.e. one you own) for the GX by setting the environment variable `DOMAIN_NAME` before running `./deploy.sh`. In that case you'll get subdomain names for each GX that can be used for real, and still have global IP addresses (the best of both worlds).
 
 This solution also creates a bucket for deployment artifacts (e.g. the output of SAM). If you want to use a bucket of your own, just set the environment variable `BUCKET_NAME` prior to running the deploy script.  You can also set the environment variable `BUCKET_PREFIX` to specify where in the bucket the artifacts will be created (maps to the `--s3-prefix` command option for the SAM and AWS CLIs).
 
@@ -41,3 +41,21 @@ To make this example closer to a "real world" use of GX the solution creates mul
 To control the configuation, see the JSON configuration files imported into the template's `Mappings` section with `Fn::Include`. The `global-config.json` file specifies the number and setup of Accelerators, including subdomain names, listeners (ports) supported and whether listeners should be created in each region (`RegionConditionals`). Using this file new Accelerators and Listeners can be added and removed. 
 
 Likewise, the `region-config.json` file contains configuration information imported into the mapping section of `region.template`, and specifies region-specific information like the AMI to use for EC2 instances. But, to keep things simple (and inexpensive to experiment with), all of the listeners in this example (UDP and TCP) route traffic to a single EC2 instance in each region that will echo requests. 
+
+## FYI #1
+
+This example creates it's own VPC to keep things separate rather than using the default VPC in your account. Using a non-default VPC creates a couple issues, though (see below) which made it interesting.
+
+## FYI #2
+
+This repo is obviously done as Infrastructure as Code (IaC), and that's great.  What's less great is finding gaps in CloudFormation that make it more difficult than it should be.  Two particular "gotchas" came up in the project:
+
+1) Global Accelerator kindly creates a special Security Group named "GlobalAccelerator" that makes it each to allow traffic to backends via an ingress rule.  Unfortunately the ID of that Security Group isn't discoverable in CloudFormation (only security groups in the default VPC can be found by name, otherwise the ID has to be used).
+2) Instance Connect kindly publishes a Prefix List to similarly make allowing SSH from that service easier.  But, again, Cloudformation provides no way to get the ID of that prefix list (which is needed for the ingress rule).
+
+The solution to both problems is to build a Custom Resource into the template that can grab those IDs. It works, kinda. Have a look at `ResourceFinder` in `templates/region.template` if you're interested.
+
+## FYI #3
+
+This solution uses `Fn::ForEach` liberally.  But you'll notice that the EC2 user data script in the `Template` response of `templates/region.template` hard-codes all of the port numbers. Why not use `Fn::ForEach` and `Fn::Join` to build those commands from the configuration data as is done elsewhere?  Unfortunately, the `Fn::ForEach` doesn't support adding elements to an array rather than properties of an object.  That makes it useful for most use cases, but no use at all for building arrays.  You can pop over to [my version](https://github.com/mlhpdx/cloudformation-macros) of `ForEach` that does allow for expansion into arrays. If you think it'd be good if `AWS::LanguageExtensions` also supported array, consider a +1 on point #6 of [this issue on their repo](https://github.com/aws-cloudformation/cfn-language-discussion/issues/118).
+
