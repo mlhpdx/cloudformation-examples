@@ -22,9 +22,93 @@
     }
   },
   "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "172.16.0.0/16",
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true
+      }
+    },
+    "Subnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": {
+                "Ref": "AWS::Region"
+              }
+            }
+          ]
+        },
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": "172.16.0.0/24",
+        "MapPublicIpOnLaunch": true
+      }
+    },
+    "Gateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "DependsOn": [
+        "Vpc"
+      ],
+      "Properties": {}
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "InternetGatewayId": {
+          "Ref": "Gateway"
+        }
+      }
+    },
+    "RouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "Route": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "Gateway",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "Gateway"
+        }
+      }
+    },
+    "RouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Subnet"
+        }
+      }
+    },
     "Instance": {
       "Type": "AWS::EC2::Instance",
+      "DependsOn": [
+        "Subnet"
+      ],
       "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet"
+        },
         "LaunchTemplate": {
           "LaunchTemplateId": {
             "Ref": "LaunchTemplate"
@@ -55,20 +139,24 @@
           "MetadataOptions": {
             "InstanceMetadataTags": "enabled"
           },
-          "SecurityGroupIds": [
-            "sg-12a4c434"
-          ],
+          "SecurityGroups": [],
           "UserData": {
             "Fn::Base64": {
               "Fn::Join": [
                 "\n",
                 [
-                  "#!/bin/bash -x",
-                  "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
-                  "yum -y update",
-                  "yum install -y aws-cli ruby jq ncat parallel",
-                  "parallel ncat -k -c \"xargs -n1 echo\" -l ::: 80 443 1812 1813 1468 3799 &",
-                  "parallel ncat -k -c \"xargs -n1 echo\" --udp -l ::: 514 1812 1813 3799 &"
+                  "#!/bin/bash -xe",
+                  "sudo yum -y install nmap || true",
+                  "sudo ncat -k -c 'xargs -n1 echo' -l 80 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' -l 443 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' -l 1812 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' -l 1813 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' -l 1468 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' -l 3799 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 514 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 1812 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 1813 &",
+                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 3799 &"
                 ]
               ]
             }
@@ -166,7 +254,190 @@
           }
         ]
       }
-    ]
+    ],
+    "ResourceFinderLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": [
+          {
+            "Ref": "ResourceFinderLambdaPolicy"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "ResourceFinderLambdaPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Managed policy for a Lambda function launched by CloudFormation",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeManagedPrefixLists"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":logs:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":log-group:/aws/lambda/",
+                    "*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ResourceFinderLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Description": "Looks-up the GlobalAccelerator security group ID and Instance Connect prefix list ID needed for the ingress rules.",
+        "MemorySize": 1024,
+        "Runtime": "python3.12",
+        "Timeout": 30,
+        "Role": { "Fn::GetAtt": [ "ResourceFinderLambdaRole", "Arn" ] },
+        "Handler": "index.lambda_handler",
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "import boto3",
+                "import cfnresponse",
+                "ec2 = boto3.client('ec2')",
+                "def lambda_handler(event, context):",
+                "  try:",
+                "    if event['RequestType'] == 'Delete':",
+                "      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, \"\")",
+                "",
+                "    response = ec2.describe_security_groups(",
+                "      Filters=[{'Name':'group-name','Values':['GlobalAccelerator']}]",
+                "    )",
+                "    gxsgid = ''",
+                "    for sg in response['SecurityGroups']:",
+                "      gxsgid = sg['GroupId']",
+                "",
+                "    response = ec2.describe_managed_prefix_lists(",
+                {
+                  "Fn::Sub": "      Filters=[{'Name':'prefix-list-name','Values':['com.amazonaws.${AWS::Region}.ec2-instance-connect']}]"
+                },
+                "    )",
+                "    icplid = ''",
+                "    for pl in response['PrefixLists']:",
+                "      icplid = pl['PrefixListId']",
+                "",
+                "    responseData = {}",
+                "    responseData['GlobalAcceleratorSecurityGroupId'] = gxsgid",
+                "    responseData['InstanceConnectPrefixListId'] = icplid",
+                "    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, \"CustomResourcePhysicalID\")",
+                "  except:",
+                "    cfnresponse.send(event, context, cfnresponse.FAILED, {}, \"\")"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "ResourceFinder": {
+      "Type": "Custom::ResourceFinder",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "ResourceFinderLambda",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "ConnectRule": {
+      "DependsOn": "ResourceFinder",
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "Vpc",
+            "DefaultSecurityGroup"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 22,
+        "ToPort": 22,
+        "SourcePrefixListId": {
+          "Fn::GetAtt": [
+            "ResourceFinder",
+            "InstanceConnectPrefixListId"
+          ]
+        }
+      }
+    },
+    "GxIngressRule": {
+      "DependsOn": [
+        "ResourceFinder"
+      ],
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": "-1",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "Vpc",
+            "DefaultSecurityGroup"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ResourceFinder",
+            "GlobalAcceleratorSecurityGroupId"
+          ]
+        }
+      }
+    }
   },
   "Outputs": {
     "InstanceId": {

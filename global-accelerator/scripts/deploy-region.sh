@@ -13,4 +13,5 @@ aws cloudformation package \
 aws cloudformation deploy \
   --template-file region.template.packaged \
   --stack-name delete-me-gx-region  \
+  --capabilities CAPABILITY_IAM \
   --region ${AWS_REGION}
