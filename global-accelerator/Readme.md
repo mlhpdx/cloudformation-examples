@@ -57,5 +57,7 @@ The solution to both problems is to build a Custom Resource into the template th
 
 ## FYI #3
 
-This solution uses `Fn::ForEach` liberally.  But you'll notice that the EC2 user data script in the `Template` response of `templates/region.template` hard-codes all of the port numbers. Why not use `Fn::ForEach` and `Fn::Join` to build those commands from the configuration data as is done elsewhere?  Unfortunately, the `Fn::ForEach` doesn't support adding elements to an array rather than properties of an object.  That makes it useful for most use cases, but no use at all for building arrays.  You can pop over to [my version](https://github.com/mlhpdx/cloudformation-macros) of `ForEach` that does allow for expansion into arrays. If you think it'd be good if `AWS::LanguageExtensions` also supported array, consider a +1 on point #6 of [this issue on their repo](https://github.com/aws-cloudformation/cfn-language-discussion/issues/118).
+This solution uses `Fn::ForEach` liberally.  But you'll notice that the EC2 user data script in the `LaunchTemplate` resource of `templates/region.template` hard-codes all of the port numbers. Why not use `Fn::ForEach` and `Fn::Join` to build those commands from the configuration data as is done elsewhere?  Unfortunately, `Fn::ForEach` doesn't support adding elements to an array rather than properties of an object.  You can pop over to [my version](https://github.com/mlhpdx/cloudformation-macros) of `ForEach` that does allow for expansion into arrays (I didn't use it in this example to avoid the dependency). 
+
+If you think it'd be good if `AWS::LanguageExtensions` also supported array output, consider a +1 on point #6 of [this issue on their repo](https://github.com/aws-cloudformation/cfn-language-discussion/issues/118).
 
