@@ -147,16 +147,16 @@
                 [
                   "#!/bin/bash -xe",
                   "sudo yum -y install nmap || true",
-                  "sudo ncat -k -c 'xargs -n1 echo' -l 80 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' -l 443 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' -l 1812 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' -l 1813 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' -l 1468 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' -l 3799 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 514 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 1812 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 1813 &",
-                  "sudo ncat -k -c 'xargs -n1 echo' --udp -l 3799 &"
+                  "sudo ncat -k -c 'xargs echo' -l 80 &",
+                  "sudo ncat -k -c 'xargs echo' -l 443 &",
+                  "sudo ncat -k -c 'xargs echo' -l 1812 &",
+                  "sudo ncat -k -c 'xargs echo' -l 1813 &",
+                  "sudo ncat -k -c 'xargs echo' -l 1468 &",
+                  "sudo ncat -k -c 'xargs echo' -l 3799 &",
+                  "sudo ncat -k -c 'xargs echo' --udp -l 514 &",
+                  "sudo ncat -k -c 'xargs echo' --udp -l 1812 &",
+                  "sudo ncat -k -c 'xargs echo' --udp -l 1813 &",
+                  "sudo ncat -k -c 'xargs echo' --udp -l 3799 &"
                 ]
               ]
             }
