@@ -147,16 +147,17 @@
                 [
                   "#!/bin/bash -xe",
                   "sudo yum -y install nmap || true",
-                  "sudo ncat -k -c 'xargs echo' -l 80 &",
-                  "sudo ncat -k -c 'xargs echo' -l 443 &",
-                  "sudo ncat -k -c 'xargs echo' -l 1812 &",
-                  "sudo ncat -k -c 'xargs echo' -l 1813 &",
-                  "sudo ncat -k -c 'xargs echo' -l 1468 &",
-                  "sudo ncat -k -c 'xargs echo' -l 3799 &",
-                  "sudo ncat -k -c 'xargs echo' --udp -l 514 &",
-                  "sudo ncat -k -c 'xargs echo' --udp -l 1812 &",
-                  "sudo ncat -k -c 'xargs echo' --udp -l 1813 &",
-                  "sudo ncat -k -c 'xargs echo' --udp -l 3799 &"
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 80 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 443 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 1812 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 1813 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 1468 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 2083 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' -l 3799 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' --udp -l 514 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' --udp -l 1812 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' --udp -l 1813 &" },
+                  { "Fn::Sub": "sudo ncat -k -c 'echo ${AWS::Region}' --udp -l 3799 &" }
                 ]
               ]
             }
