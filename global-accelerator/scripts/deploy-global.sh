@@ -3,7 +3,7 @@ set -xe
 aws cloudformation package \
   --template-file templates/global.template \
   --s3-bucket ${BUCKET_NAME} \
-  --s3-prefix ${BUCKET_PREFIX:-temp/gx} \
+  --s3-prefix ${BUCKET_PREFIX:-temp/delete-me-gx} \
   --output-template-file global.template.packaged \
   --region ${AWS_REGION}
 
