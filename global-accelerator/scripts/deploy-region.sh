@@ -6,7 +6,7 @@ jq ".[0] * {GlobalOutputs:([.[1][]|{(.OutputKey):.OutputValue}]|add)}" -s config
 aws cloudformation package \
   --template-file templates/region.template \
   --s3-bucket ${BUCKET_NAME} \
-  --s3-prefix ${BUCKET_PREFIX:-temp/gx} \
+  --s3-prefix ${BUCKET_PREFIX:-temp/delete-me-gx} \
   --output-template-file region.template.packaged \
   --region ${AWS_REGION}
 
