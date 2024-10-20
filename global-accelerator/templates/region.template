@@ -21,6 +21,26 @@
       }
     }
   },
+  "Conditions": {
+    "Fn::ForEach::CreateGxConditions": [
+      "Key",
+      {
+        "Fn::FindInMap": [
+          "Stacks",
+          "Accelerators",
+          "Keys"
+        ]
+      },
+      {
+        "Create${Key}InThisRegion": {
+          "Fn::Equals": [
+            { "Fn::FindInMap": [ "RegionConditionals", { "Ref": "AWS::Region" }, { "Ref": "Key" } ] },
+            "true"
+          ]
+        }
+      }
+    ]
+  },
   "Resources": {
     "Vpc": {
       "Type": "AWS::EC2::VPC",
@@ -190,6 +210,7 @@
           {
             "TcpEPG${Key}${TcpPort}": {
               "Type": "AWS::GlobalAccelerator::EndpointGroup",
+              "Condition": { "Fn::Sub": "Create${Key}InThisRegion" },
               "Properties": {
                 "ListenerArn": {
                   "Fn::FindInMap": [
@@ -229,6 +250,7 @@
           {
             "UdpEPG${Key}${UdpPort}": {
               "Type": "AWS::GlobalAccelerator::EndpointGroup",
+              "Condition": { "Fn::Sub": "Create${Key}InThisRegion" },
               "Properties": {
                 "ListenerArn": {
                   "Fn::FindInMap": [
