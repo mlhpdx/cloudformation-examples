@@ -53,7 +53,7 @@ This repo is obviously done as Infrastructure as Code (IaC), and that's great.  
 1) Global Accelerator kindly creates a special Security Group named "GlobalAccelerator" that makes it each to allow traffic to backends via an ingress rule.  Unfortunately the ID of that Security Group isn't discoverable in CloudFormation (only security groups in the default VPC can be found by name, otherwise the ID has to be used).
 2) Instance Connect kindly publishes a Prefix List to similarly make allowing SSH from that service easier.  But, again, Cloudformation provides no way to get the ID of that prefix list (which is needed for the ingress rule).
 
-The solution to both problems is to build a Custom Resource into the template that can grab those IDs. It works, kinda. Have a look at `ResourceFinder` in `templates/region.template` if you're interested.
+The solution to both problems is to build a Custom Resource into the template that can grab those IDs. It works, kinda. Have a look at `ResourceFinder` in `templates/region.template` if you're interested. Oh, just don't look very closely or you may notice the grotesque `DependsOn` hack that ensures the GlobalAccelerator security group has been created before the resource finder.  There is a better way, but I haven't found it yet.
 
 ## FYI #3
 

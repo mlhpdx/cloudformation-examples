@@ -410,6 +410,7 @@
     },
     "ResourceFinder": {
       "Type": "Custom::ResourceFinder",
+      "DependsOn": [ "TcpEPGA80" ],
       "Properties": {
         "ServiceToken": {
           "Fn::GetAtt": [
