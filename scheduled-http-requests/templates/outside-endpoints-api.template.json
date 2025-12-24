@@ -1,0 +1,141 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "API Gateway REST API with IAM authentication for GitHub.com and weather.gov HTTP integrations.",
+	"Parameters": {
+		"ContactEmail": {
+			"Type": "String",
+			"Description": "Contact email for User-Agent header in weather.gov requests."
+		}
+	},
+	"Resources": {
+		"ApiGatewayRestApi": {
+			"Type": "AWS::ApiGateway::RestApi",
+			"Properties": {
+				"Name": "OutsideEndpointsApi",
+				"EndpointConfiguration": {
+					"Types": ["REGIONAL"]
+				}
+			}
+		},
+		"ApiGatewayRootResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ParentId": { "Fn::GetAtt": ["ApiGatewayRestApi", "RootResourceId"] },
+				"PathPart": "api"
+			}
+		},
+		"GitHubResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ParentId": { "Ref": "ApiGatewayRootResource" },
+				"PathPart": "github"
+			}
+		},
+		"GitHubProxyResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ParentId": { "Ref": "GitHubResource" },
+				"PathPart": "{proxy+}"
+			}
+		},
+		"WeatherGovResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ParentId": { "Ref": "ApiGatewayRootResource" },
+				"PathPart": "weather"
+			}
+		},
+		"WeatherGovProxyResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ParentId": { "Ref": "WeatherGovResource" },
+				"PathPart": "{proxy+}"
+			}
+		},
+		"GitHubProxyGetMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ResourceId": { "Ref": "GitHubProxyResource" },
+				"HttpMethod": "GET",
+				"AuthorizationType": "AWS_IAM",
+				"Integration": {
+					"Type": "HTTP_PROXY",
+					"IntegrationHttpMethod": "GET",
+					"Uri": "https://api.github.com/{proxy}",
+					"PassthroughBehavior": "WHEN_NO_MATCH",
+					"RequestParameters": {
+						"integration.request.path.proxy": "method.request.path.proxy"
+					}
+				},
+				"RequestParameters": {
+					"method.request.path.proxy": true
+				},
+				"MethodResponses": [
+					{
+						"StatusCode": "200"
+					}
+				]
+			}
+		},
+		"WeatherGovProxyGetMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"ResourceId": { "Ref": "WeatherGovProxyResource" },
+				"HttpMethod": "GET",
+				"AuthorizationType": "AWS_IAM",
+				"Integration": {
+					"Type": "HTTP_PROXY",
+					"IntegrationHttpMethod": "GET",
+					"Uri": "https://api.weather.gov/{proxy}",
+					"PassthroughBehavior": "WHEN_NO_MATCH",
+					"RequestParameters": {
+						"integration.request.path.proxy": "method.request.path.proxy",
+						"integration.request.header.User-Agent": "method.request.header.User-Agent"
+					}
+				},
+				"RequestParameters": {
+					"method.request.path.proxy": true,
+					"method.request.header.User-Agent": false
+				},
+				"MethodResponses": [
+					{
+						"StatusCode": "200"
+					}
+				]
+			}
+		},
+		"ApiGatewayDeployment2": {
+			"Type": "AWS::ApiGateway::Deployment",
+			"DependsOn": ["GitHubProxyGetMethod", "WeatherGovProxyGetMethod"],
+			"Properties": {
+				"RestApiId": { "Ref": "ApiGatewayRestApi" },
+				"StageName": "v0"
+			}
+		}
+	},
+	"Outputs": {
+		"ApiId": {
+			"Description": "API Gateway RestApiId",
+			"Value": { "Ref": "ApiGatewayRestApi" }
+		},
+		"GitHubEndpoint": {
+			"Description": "Fully qualified endpoint for GitHub resource",
+			"Value": {
+				"Fn::Sub": "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/v0/api/github"
+			}
+		},
+		"WeatherGovEndpoint": {
+			"Description": "Fully qualified endpoint for weather.gov resource",
+			"Value": {
+				"Fn::Sub": "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/v0/api/weather"
+			}
+		}
+	}
+}

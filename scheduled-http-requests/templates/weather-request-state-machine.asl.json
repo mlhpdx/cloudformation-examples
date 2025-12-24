@@ -1,0 +1,84 @@
+{
+    "Comment": "State machine to call weather.gov API via API Gateway, validate input, and record custom metrics.",
+    "StartAt": "ValidateInput",
+    "States": {
+        "ValidateInput": {
+            "Type": "Pass",
+            "ResultPath": "$.validated",
+            "Parameters": {
+                "area.$": "$.area"
+            },
+            "Next": "CallWeatherApi"
+        },
+        "CallWeatherApi": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::apigateway:invoke",
+            "Parameters": {
+                "ApiEndpoint": "${ApiGatewayId}.execute-api.${AWSRegion}.amazonaws.com",
+                "Method": "GET",
+                "Path": "/v0${WeatherResourcePath}/alerts/active",
+                "QueryParameters": {
+                    "area.$": "States.Array($.validated.area)"
+                },
+                "Headers": {
+                    "User-Agent": [
+                        "https://github.com/mlhpdx/cloudformation-examples (${ContactEmail}))"
+                    ]
+                },
+                "AuthType": "IAM_ROLE"
+            },
+            "ResultPath": "$.apiResponse",
+            "Next": "IncrementRequestMetric"
+        },
+        "IncrementRequestMetric": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "Parameters": {
+                "Namespace": "WeatherApiStateMachine",
+                "MetricData": [
+                    {
+                        "MetricName": "${RequestMetricName}",
+                        "Value": 1,
+                        "Unit": "Count"
+                    }
+                ]
+            },
+            "Next": "CheckStatusCode",
+            "ResultPath": null
+        },
+        "CheckStatusCode": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.apiResponse.StatusCode",
+                    "NumericEquals": 200,
+                    "Next": "Success"
+                }
+            ],
+            "Default": "IncrementErrorMetric"
+        },
+        "IncrementErrorMetric": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "Parameters": {
+                "Namespace": "WeatherApiStateMachine",
+                "MetricData": [
+                    {
+                        "MetricName": "${ErrorMetricName}",
+                        "Value": 1,
+                        "Unit": "Count"
+                    }
+                ]
+            },
+            "Next": "Fail"
+        },
+        "Success": {
+            "Type": "Succeed"
+        },
+        "Fail": {
+            "Type": "Fail",
+            "Error": "WeatherApiError",
+            "Cause": "Non-200 response from weather.gov API."
+        }
+    }
+}

@@ -1,0 +1,205 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Transform": "AWS::Serverless-2016-10-31",
+	"Description": "Main SAM template for scheduled HTTP requests solution.",
+	"Parameters": {
+		"ContactEmail": {
+			"Type": "String",
+			"Description": "Contact email for User-Agent header in weather.gov requests."
+		}
+	},
+	"Resources": {
+		"EndpointsStack": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": "templates/outside-endpoints-api.template.json",
+				"Parameters": {
+					"ContactEmail": { "Ref": "ContactEmail" }
+				}
+			}
+		},
+		"GitHubSchedulePolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description": "Allow EventBridge to start GitHub state machine execution.",
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": ["states:StartExecution"],
+							"Resource": { "Ref": "GitHubRequestStateMachine" }
+						}
+					]
+				}
+			}
+		},
+		"GitHubScheduleRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": { "Service": "events.amazonaws.com" },
+							"Action": "sts:AssumeRole"
+						}
+					]
+				},
+				"ManagedPolicyArns": [ { "Ref": "GitHubSchedulePolicy" } ]
+			}
+		},
+		"GitHubStateMachinePolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description": "Allow Step Functions to invoke API Gateway and put CloudWatch metrics.",
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": "execute-api:Invoke",
+							"Resource": {
+								"Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EndpointsStack.Outputs.ApiId}/v0/GET/api/github/*"
+							}
+						},
+						{
+							"Effect": "Allow",
+							"Action": "cloudwatch:PutMetricData",
+							"Resource": "*"
+						}
+					]
+				}
+			}
+		},
+		"GitHubStateMachineRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": { "Service": "states.amazonaws.com" },
+							"Action": "sts:AssumeRole"
+						}
+					]
+				},
+				"ManagedPolicyArns": [ { "Ref": "GitHubStateMachinePolicy" } ]
+			}
+		},
+		"GitHubRequestStateMachine": {
+			"Type": "AWS::Serverless::StateMachine",
+			"Properties": {
+				"DefinitionUri": "templates/github-request-state-machine.asl.json",
+				"Role": { "Fn::GetAtt": ["GitHubStateMachineRole", "Arn"] },
+				"DefinitionSubstitutions": {
+					"AWSRegion": { "Ref": "AWS::Region" },
+					"ApiGatewayId": { "Fn::GetAtt": ["EndpointsStack", "Outputs.ApiId"] },
+					"GitHubResourcePath": "/api/github",
+					"RequestMetricName": "GitHubApiRequestCount",
+					"ErrorMetricName": "GitHubApiErrorCount"
+				}
+			}
+		},
+		"WeatherSchedulePolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description": "Allow EventBridge to start Weather state machine execution.",
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": ["states:StartExecution"],
+							"Resource": { "Ref": "WeatherRequestStateMachine" }
+						}
+					]
+				}
+			}
+		},
+		"WeatherScheduleRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": { "Service": "events.amazonaws.com" },
+							"Action": "sts:AssumeRole"
+						}
+					]
+				},
+				"ManagedPolicyArns": [ { "Ref": "WeatherSchedulePolicy" } ]
+			}
+		},
+		"WeatherStateMachinePolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description": "Allow Step Functions to invoke API Gateway and put CloudWatch metrics.",
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": "execute-api:Invoke",
+							"Resource": {
+								"Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EndpointsStack.Outputs.ApiId}/v0/GET/api/weather/*"
+							}
+						},
+						{
+							"Effect": "Allow",
+							"Action": "cloudwatch:PutMetricData",
+							"Resource": "*"
+						}
+					]
+				}
+			}
+		},
+		"WeatherStateMachineRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": { "Service": "states.amazonaws.com" },
+							"Action": "sts:AssumeRole"
+						}
+					]
+				},
+				"ManagedPolicyArns": [ { "Ref": "WeatherStateMachinePolicy" } ]
+			}
+		},
+		"WeatherRequestStateMachine": {
+			"Type": "AWS::Serverless::StateMachine",
+			"Properties": {
+				"DefinitionUri": "templates/weather-request-state-machine.asl.json",
+				"Role": { "Fn::GetAtt": ["WeatherStateMachineRole", "Arn"] },
+				"DefinitionSubstitutions": {
+					"AWSRegion": { "Ref": "AWS::Region" },
+					"ContactEmail": { "Ref": "ContactEmail" },
+					"ApiGatewayId": { "Fn::GetAtt": ["EndpointsStack", "Outputs.ApiId"] },
+					"WeatherResourcePath": "/api/weather",
+					"RequestMetricName": "WeatherApiRequestCount",
+					"ErrorMetricName": "WeatherApiErrorCount"
+				}
+			}
+		},
+		"SchedulesStack": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": "templates/schedules.template.json",
+				"Parameters": {
+					"GitHubStateMachineArn": { "Ref": "GitHubRequestStateMachine" },
+					"WeatherStateMachineArn": { "Ref": "WeatherRequestStateMachine" },
+					"GitHubScheduleRoleArn": { "Fn::GetAtt": ["GitHubScheduleRole", "Arn"] },
+					"WeatherScheduleRoleArn": { "Fn::GetAtt": ["WeatherScheduleRole", "Arn"] }
+				}
+			}
+		}
+	}
+}

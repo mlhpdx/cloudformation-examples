@@ -1,0 +1,99 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "EventBridge schedules to trigger GitHub and Weather state machines every five minutes.",
+	"Parameters": {
+		"GitHubStateMachineArn": {
+			"Type": "String",
+			"Description": "ARN of the GitHub request state machine."
+		},
+		"WeatherStateMachineArn": {
+			"Type": "String",
+			"Description": "ARN of the Weather request state machine."
+		},
+		"GitHubScheduleRoleArn": {
+			"Type": "String",
+			"Description": "IAM role ARN for EventBridge to invoke the GitHub state machine."
+		},
+		"WeatherScheduleRoleArn": {
+			"Type": "String",
+			"Description": "IAM role ARN for EventBridge to invoke the Weather state machine."
+		}
+	},
+	"Resources": {
+		"GitHubScheduleRuleSimplestLoadBalancer": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"ScheduleExpression": "rate(1 hour)",
+				"State": "ENABLED",
+				"Targets": [
+					{
+						"Arn": { "Ref": "GitHubStateMachineArn" },
+						"Id": "GitHubSimplestLoadBalancerTarget",
+						"RoleArn": { "Ref": "GitHubScheduleRoleArn" },
+						"Input": "{ \"accountName\": \"mlhpdx\", \"repoName\": \"simplestloadbalancer\" }"
+					}
+				]
+			}
+		},
+		"GitHubScheduleRuleS3UploadStream": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"ScheduleExpression": "rate(1 hour)",
+				"State": "ENABLED",
+				"Targets": [
+					{
+						"Arn": { "Ref": "GitHubStateMachineArn" },
+						"Id": "GitHubS3UploadStreamTarget",
+						"RoleArn": { "Ref": "GitHubScheduleRoleArn" },
+						"Input": "{ \"accountName\": \"mlhpdx\", \"repoName\": \"s3uploadstream\" }"
+					}
+				]
+			}
+		},
+		"WeatherScheduleRulePortland": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"ScheduleExpression": "rate(15 minutes)",
+				"State": "ENABLED",
+				"Targets": [
+					{
+						"Arn": { "Ref": "WeatherStateMachineArn" },
+						"Id": "WeatherPortlandTarget",
+						"RoleArn": { "Ref": "WeatherScheduleRoleArn" },
+						"Input": "{ \"area\": \"OR\" }"
+					}
+				]
+			}
+		},
+		"WeatherScheduleRuleSeattle": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"ScheduleExpression": "rate(15 minutes)",
+				"State": "ENABLED",
+				"Targets": [
+					{
+						"Arn": { "Ref": "WeatherStateMachineArn" },
+						"Id": "WeatherSeattleTarget",
+						"RoleArn": { "Ref": "WeatherScheduleRoleArn" },
+						"Input": "{ \"area\": \"WA\" }"
+					}
+				]
+			}
+		},
+		"WeatherScheduleRuleSanFrancisco": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"ScheduleExpression": "rate(15 minutes)",
+				"State": "ENABLED",
+				"Targets": [
+					{
+						"Arn": { "Ref": "WeatherStateMachineArn" },
+						"Id": "WeatherSanFranciscoTarget",
+						"RoleArn": { "Ref": "WeatherScheduleRoleArn" },
+						"Input": "{ \"area\": \"CA\" }"
+					}
+				]
+			}
+		}
+	}
+}

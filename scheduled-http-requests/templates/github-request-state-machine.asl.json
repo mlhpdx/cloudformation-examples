@@ -1,0 +1,77 @@
+{
+    "Comment": "State machine to call GitHub API via API Gateway, validate input, and record custom metrics.",
+    "StartAt": "ValidateInput",
+    "States": {
+        "ValidateInput": {
+            "Type": "Pass",
+            "ResultPath": "$.validated",
+            "Parameters": {
+                "accountName.$": "$.accountName",
+                "repoName.$": "$.repoName"
+            },
+            "Next": "CallGitHubApi"
+        },
+        "CallGitHubApi": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::apigateway:invoke",
+            "Parameters": {
+                "ApiEndpoint": "${ApiGatewayId}.execute-api.${AWSRegion}.amazonaws.com",
+                "Method": "GET",
+                "Path.$": "States.Format('{}/repos/{}/{}','/v0${GitHubResourcePath}',$.validated.accountName, $.validated.repoName)",
+                "AuthType": "IAM_ROLE"
+            },
+            "ResultPath": "$.apiResponse",
+            "Next": "IncrementRequestMetric"
+        },
+        "IncrementRequestMetric": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "Parameters": {
+                "Namespace": "GitHubApiStateMachine",
+                "MetricData": [
+                    {
+                        "MetricName": "${RequestMetricName}",
+                        "Value": 1,
+                        "Unit": "Count"
+                    }
+                ]
+            },
+            "Next": "CheckStatusCode",
+            "ResultPath": null
+        },
+        "CheckStatusCode": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.apiResponse.StatusCode",
+                    "NumericEquals": 200,
+                    "Next": "Success"
+                }
+            ],
+            "Default": "IncrementErrorMetric"
+        },
+        "IncrementErrorMetric": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "Parameters": {
+                "Namespace": "GitHubApiStateMachine",
+                "MetricData": [
+                    {
+                        "MetricName": "${ErrorMetricName}",
+                        "Value": 1,
+                        "Unit": "Count"
+                    }
+                ]
+            },
+            "Next": "Fail"
+        },
+        "Success": {
+            "Type": "Succeed"
+        },
+        "Fail": {
+            "Type": "Fail",
+            "Error": "GitHubApiError",
+            "Cause": "Non-200 response from GitHub API."
+        }
+    }
+}
