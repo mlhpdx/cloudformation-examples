@@ -6,3 +6,4 @@ This repo contains examples of using CloudFormation (and SAM) that might be usef
 
 * Global Accelerator is a fantastic service, but setting it up in CloudFormation is non-trivial. So, [./global-accelerator](./global-accelerator) provides an example of a "close to real world" deployment approach.
 
+* **[./scheduled-http-requests](./scheduled-http-requests)** Make scheduled HTTP requests to external APIs without the cost and complexity of NAT Gateways. Demonstrates the "inside-out" API Gateway pattern using EventBridge, Step Functions, and IAM for secure, serverless external access.
